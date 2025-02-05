@@ -2814,16 +2814,17 @@ function _Yandex_Get() {
 function _Yandex_GetDeviceType() {
     try {
         YaGames.init().then(ysdk => {
-            myGameInstance.SendMessage("Yandex", "SetDeviceType", ysdk.deviceInfo.type);
+            myGameInstance.SendMessage("Yandex", "SetDeviceType", "desktop");
         }).catch(() => {
-            console.warn("Yandex_GetDeviceType: Failed to fetch device type, fallback to unknown.");
-            myGameInstance.SendMessage("Yandex", "SetDeviceType", "unknown");
+            console.warn("Yandex_GetDeviceType: Failed to fetch device type, forcing desktop.");
+            myGameInstance.SendMessage("Yandex", "SetDeviceType", "desktop");
         });
     } catch (e) {
-        console.warn("Yandex_GetDeviceType: Error occurred, fallback to unknown.", e);
-        myGameInstance.SendMessage("Yandex", "SetDeviceType", "unknown");
+        console.warn("Yandex_GetDeviceType: Error occurred, forcing desktop.", e);
+        myGameInstance.SendMessage("Yandex", "SetDeviceType", "desktop");
     }
 }
+
 
 function _Yandex_GetLanguage() {
     try {
