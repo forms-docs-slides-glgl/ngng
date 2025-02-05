@@ -2768,8 +2768,9 @@ var unityFramework = ( () => {
             }
             requestOptions.timeout = timeout
         }
-        function _Yandex_GameplayAction(action) {
-            switch (action) {
+function _Yandex_GameplayAction(action) {
+    try {
+        switch (action) {
             case 0:
                 ysdk.features.LoadingAPI.ready();
                 break;
@@ -2780,92 +2781,141 @@ var unityFramework = ( () => {
                 ysdk.features.GameplayAPI.stop();
                 break;
             default:
-                console.error("Yandex_GameplayAction: Unknown action:", action)
-            }
+                console.error("Yandex_GameplayAction: Unknown action:", action);
         }
-        function _Yandex_Get() {
-            if (player == null) {
-                myGameInstance.SendMessage("Yandex_Progress", "MY_GetFromLocal")
-            } else {
-                if (player.getMode() == "lite") {
-                    myGameInstance.SendMessage("Yandex_Progress", "MY_GetFromLocal")
-                } else {
-                    player.getData().then(_date => {
-                        const myJSON = JSON.stringify(_date);
-                        myGameInstance.SendMessage("Yandex_Progress", "MY_GetFromYandex", myJSON)
-                    }
-                    )
-                }
-            }
-        }
-        function _Yandex_GetDeviceType() {
-            YaGames.init().then(ysdk => {
-                myGameInstance.SendMessage("Yandex", "SetDeviceType", ysdk.deviceInfo.type)
-            }
-            )
-        }
-function _Yandex_GetLanguage() {
-    YaGames.init().then(ysdk => {
-        const language = ysdk && ysdk.environment && ysdk.environment.i18n ? ysdk.environment.i18n.lang : 'en-US';
-        myGameInstance.SendMessage("Yandex", "MY_SetLanguage", language);
-    }).catch(error => {
-        console.error("YaGames SDK initialization failed:", error);
-        myGameInstance.SendMessage("Yandex", "MY_SetLanguage", 'en-US'); // Fallback to en-US if there's an error
-    });
+    } catch (e) {
+        console.warn("Yandex_GameplayAction: Fallback due to error", e);
+    }
 }
 
-        function _Yandex_GetUserAgent() {
-            YaGames.init().then(ysdk => {
-                myGameInstance.SendMessage("Yandex", "SetUserAgent", window.navigator.userAgent)
+function _Yandex_Get() {
+    try {
+        if (player == null) {
+            myGameInstance.SendMessage("Yandex_Progress", "MY_GetFromLocal");
+        } else {
+            if (player.getMode() == "lite") {
+                myGameInstance.SendMessage("Yandex_Progress", "MY_GetFromLocal");
+            } else {
+                player.getData().then(_date => {
+                    const myJSON = JSON.stringify(_date);
+                    myGameInstance.SendMessage("Yandex_Progress", "MY_GetFromYandex", myJSON);
+                }).catch(() => {
+                    console.warn("Yandex_Get: Failed to fetch data, fallback to local.");
+                    myGameInstance.SendMessage("Yandex_Progress", "MY_GetFromLocal");
+                });
             }
-            )
         }
-        function _Yandex_Save(date) {
-            if (player == null)
-                return;
-            if (player.getMode() == "lite")
-                return;
-            var dateString = UTF8ToString(date);
-            var myobj = JSON.parse(dateString);
-            player.setData(myobj)
-        }
-        function _Yandex_ShowInterstitial() {
-            YaGames.init().then(ysdk => ysdk.adv.showFullscreenAdv({
-                callbacks: {
-                    onOpen: () => {
-                        myGameInstance.SendMessage("Yandex", "AdOpenedSuccess")
-                    }
-                    ,
-                    onClose: function(wasShown) {
-                        myGameInstance.SendMessage("Yandex", "AdClosed")
-                    },
-                    onError: function(error) {
-                        myGameInstance.SendMessage("Yandex", "AdError")
-                    }
+    } catch (e) {
+        console.warn("Yandex_Get: Error occurred, fallback to local data.", e);
+        myGameInstance.SendMessage("Yandex_Progress", "MY_GetFromLocal");
+    }
+}
+
+function _Yandex_GetDeviceType() {
+    try {
+        YaGames.init().then(ysdk => {
+            myGameInstance.SendMessage("Yandex", "SetDeviceType", ysdk.deviceInfo.type);
+        }).catch(() => {
+            console.warn("Yandex_GetDeviceType: Failed to fetch device type, fallback to unknown.");
+            myGameInstance.SendMessage("Yandex", "SetDeviceType", "unknown");
+        });
+    } catch (e) {
+        console.warn("Yandex_GetDeviceType: Error occurred, fallback to unknown.", e);
+        myGameInstance.SendMessage("Yandex", "SetDeviceType", "unknown");
+    }
+}
+
+function _Yandex_GetLanguage() {
+    try {
+        YaGames.init().then(ysdk => {
+            const language = ysdk && ysdk.environment && ysdk.environment.i18n ? ysdk.environment.i18n.lang : 'en-US';
+            myGameInstance.SendMessage("Yandex", "MY_SetLanguage", language);
+        }).catch(() => {
+            console.warn("Yandex_GetLanguage: Failed to fetch language, fallback to en-US.");
+            myGameInstance.SendMessage("Yandex", "MY_SetLanguage", 'en-US');
+        });
+    } catch (e) {
+        console.warn("Yandex_GetLanguage: Error occurred, fallback to en-US.", e);
+        myGameInstance.SendMessage("Yandex", "MY_SetLanguage", 'en-US');
+    }
+}
+
+function _Yandex_GetUserAgent() {
+    try {
+        YaGames.init().then(ysdk => {
+            myGameInstance.SendMessage("Yandex", "SetUserAgent", window.navigator.userAgent);
+        }).catch(() => {
+            console.warn("Yandex_GetUserAgent: Failed to fetch user agent, fallback to default.");
+            myGameInstance.SendMessage("Yandex", "SetUserAgent", window.navigator.userAgent || "unknown");
+        });
+    } catch (e) {
+        console.warn("Yandex_GetUserAgent: Error occurred, fallback to default user agent.", e);
+        myGameInstance.SendMessage("Yandex", "SetUserAgent", window.navigator.userAgent || "unknown");
+    }
+}
+
+function _Yandex_Save(date) {
+    try {
+        if (player == null || player.getMode() == "lite") return;
+        var dateString = UTF8ToString(date);
+        var myobj = JSON.parse(dateString);
+        player.setData(myobj);
+    } catch (e) {
+        console.warn("Yandex_Save: Error occurred, saving skipped.", e);
+    }
+}
+
+function _Yandex_ShowInterstitial() {
+    try {
+        YaGames.init().then(ysdk => ysdk.adv.showFullscreenAdv({
+            callbacks: {
+                onOpen: () => {
+                    myGameInstance.SendMessage("Yandex", "AdOpenedSuccess");
+                },
+                onClose: function(wasShown) {
+                    myGameInstance.SendMessage("Yandex", "AdClosed");
+                },
+                onError: function(error) {
+                    myGameInstance.SendMessage("Yandex", "AdError");
                 }
-            }))
-        }
-        function _Yandex_ShowRewarded(value) {
-            YaGames.init().then(ysdk => ysdk.adv.showRewardedVideo({
-                callbacks: {
-                    onOpen: () => {
-                        myGameInstance.SendMessage("Yandex", "RewardedAdOpenedSuccess")
-                    }
-                    ,
-                    onRewarded: () => {
-                        myGameInstance.SendMessage("Yandex", "GetAward", value)
-                    }
-                    ,
-                    onClose: () => {
-                        myGameInstance.SendMessage("Yandex", "AdClosed")
-                    }
-                    ,
-                    onError: e => {
-                        myGameInstance.SendMessage("Yandex", "AdError")
-                    }
+            }
+        })).catch(() => {
+            console.warn("Yandex_ShowInterstitial: Failed to show interstitial ad.");
+            myGameInstance.SendMessage("Yandex", "AdError");
+        });
+    } catch (e) {
+        console.warn("Yandex_ShowInterstitial: Error occurred, fallback to no ad.", e);
+        myGameInstance.SendMessage("Yandex", "AdError");
+    }
+}
+
+function _Yandex_ShowRewarded(value) {
+    try {
+        YaGames.init().then(ysdk => ysdk.adv.showRewardedVideo({
+            callbacks: {
+                onOpen: () => {
+                    myGameInstance.SendMessage("Yandex", "RewardedAdOpenedSuccess");
+                },
+                onRewarded: () => {
+                    myGameInstance.SendMessage("Yandex", "GetAward", value);
+                },
+                onClose: () => {
+                    myGameInstance.SendMessage("Yandex", "AdClosed");
+                },
+                onError: e => {
+                    myGameInstance.SendMessage("Yandex", "AdError");
                 }
-            }))
-        }
+            }
+        })).catch(() => {
+            console.warn("Yandex_ShowRewarded: Failed to show rewarded ad.");
+            myGameInstance.SendMessage("Yandex", "AdError");
+        });
+    } catch (e) {
+        console.warn("Yandex_ShowRewarded: Error occurred, fallback to no ad.", e);
+        myGameInstance.SendMessage("Yandex", "AdError");
+    }
+}
+
         function ___cxa_allocate_exception(size) {
             return _malloc(size + 16) + 16
         }
